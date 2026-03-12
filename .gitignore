@@ -1,0 +1,11 @@
+# Ignore virtual environments
+.venv/
+venv/
+
+# Ignore data files
+data/
+*.csv
+
+# Ignore PyCharm settings
+.idea/
+*.ipynb_checkpoints/
