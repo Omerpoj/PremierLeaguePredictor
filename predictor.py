@@ -61,7 +61,7 @@ class PremierLeaguePredictor:
             # default hour typical for English football
             df["hour"] = 15
 
-        df["target"] = (df["FTR"] == "H").astype(int)
+        df["target"] = df["FTR"]
         return df
 
     def _add_rolling_averages(self, df):
@@ -101,7 +101,7 @@ class PremierLeaguePredictor:
         # initialization of a table that shows the result and the truth
         combined = pd.DataFrame(dict(actual=test["target"], prediction=preds), index=test.index)
 
-        return combined, precision_score(test["target"], preds)
+        return combined, precision_score(test["target"], preds, average='macro', zero_division=0)
 
     def predict_single_match(self, home_team, away_team, day_code=5, hour=15):
         """
@@ -136,16 +136,14 @@ class PremierLeaguePredictor:
 
         prediction = self.model.predict(match_features)[0]
         probabilities = self.model.predict_proba(match_features)[0]
-        home_win_chance = probabilities[1]
 
-        print(f"\n--- Match Prediction: {home_team} vs {away_team} ---")
-        if prediction == 1:
-            print(f"The model predicts: {home_team} WIN!")
-        else:
-            print(f"The model predicts: Draw or {away_team} WIN.")
+        classes = list(self.model.classes_)
+        away_win_chance = probabilities[classes.index('A')]
+        draw_chance = probabilities[classes.index('D')]
+        home_win_chance = probabilities[classes.index('H')]
 
-        print(f"Probability of {home_team} winning: {home_win_chance:.2%}")
-        return prediction
+        # return the result and the probabilities
+        return prediction, home_win_chance, draw_chance, away_win_chance
 
 
 # ==========================================
