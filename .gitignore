@@ -8,10 +8,6 @@ __pycache__/
 venv/
 env/
 
-# Data files
-matches_data/
-*.csv
-
 # IDE settings
 .idea/
 .vscode/
