@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premier League AI Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>⚽ Premier League AI Predictor</h2>
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="home_team">Home Team:</label>
+                <select name="home_team" id="home_team" required>
+                    {% for team in teams %}
+                        <option value="{{ team }}">{{ team }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="away_team">Away Team:</label>
+                <select name="away_team" id="away_team" required>
+                    {% for team in teams %}
+                        <option value="{{ team }}">{{ team }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit">Predict Match</button>
+        </form>
+
+        {% if result_text %}
+            <div class="result">
+                {{ result_text }}
+            </div>
+        {% endif %}
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

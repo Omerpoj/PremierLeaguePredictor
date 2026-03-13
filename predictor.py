@@ -9,8 +9,8 @@ class PremierLeaguePredictor:
         """sys innit definition of files path, attributes and the module"""
         self.data_path = data_path
         self.predictors = ["home_code", "away_code", "day_code", "hour",
-                           "home_rolling_goals", "away_rolling_goals",
-                           "home_rolling_conceded", "away_rolling_conceded"]
+                           "home_rolling_goals", "home_rolling_conceded",
+                           "away_rolling_goals", "away_rolling_conceded"]
 
         # module definition
         self.model = RandomForestClassifier(n_estimators=100, min_samples_split=100, random_state=1)
@@ -44,8 +44,9 @@ class PremierLeaguePredictor:
         df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, format="mixed")
 
         # [CRITICAL FIX]: making a dictionary code for every team
-        all_teams = pd.concat([df["HomeTeam"], df["AwayTeam"]]).unique()
-        all_teams.sort()
+        all_teams_series = (pd.concat([df["HomeTeam"], df["AwayTeam"]]))
+        all_teams = all_teams_series.dropna().unique()
+        all_teams = sorted(str(team) for team in all_teams)
         self.team_mapping = {team: index for index, team in enumerate(all_teams)}
 
         df["home_code"] = df["HomeTeam"].map(self.team_mapping)
@@ -139,11 +140,11 @@ class PremierLeaguePredictor:
 
         print(f"\n--- Match Prediction: {home_team} vs {away_team} ---")
         if prediction == 1:
-            print(f"🏆 The model predicts: {home_team} WIN!")
+            print(f"The model predicts: {home_team} WIN!")
         else:
-            print(f"⚖️ The model predicts: Draw or {away_team} WIN.")
+            print(f"The model predicts: Draw or {away_team} WIN.")
 
-        print(f"📊 Probability of {home_team} winning: {home_win_chance:.2%}")
+        print(f"Probability of {home_team} winning: {home_win_chance:.2%}")
         return prediction
 
 

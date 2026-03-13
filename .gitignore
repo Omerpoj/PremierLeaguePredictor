@@ -1,11 +1,20 @@
-# Ignore virtual environments
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
 .venv/
 venv/
+env/
 
-# Ignore data files
-data/
+# Data files
+matches_data/
 *.csv
 
-# Ignore PyCharm settings
+# IDE settings
 .idea/
-*.ipynb_checkpoints/
+.vscode/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
