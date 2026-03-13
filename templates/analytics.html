@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Analytics | Premier League AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container" style="max-width: 700px;">
+        <h2>📊 AI Model Analytics</h2>
+        <p style="color: #666; font-size: 14px; margin-bottom: 30px;">
+            This chart reveals the "Feature Importance" of our Random Forest model.
+            It shows which historical metrics have the most influence on predicting the match outcome.
+        </p>
+
+        <canvas id="importanceChart" height="250"></canvas>
+
+        <a href="/" style="display: inline-block; margin-top: 30px; text-decoration: none; color: #007bff; font-weight: bold;">
+            ← Back to Predictor
+        </a>
+    </div>
+
+    <script>
+
+        const rawData = {{ feature_data | tojson }};
+
+        // מפרידים לתוויות (שמות המשתנים) ולערכים (האחוזים)
+        const labels = rawData.map(item => item.feature);
+        const dataValues = rawData.map(item => item.importance);
+
+        // הגדרת הגרף
+        const ctx = document.getElementById('importanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar', // גרף עמודות אופקי
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Impact on Prediction (%)',
+                    data: dataValues,
+                    backgroundColor: 'rgba(0, 255, 133, 0.6)', // ירוק בהיר תואם לאתר
+                    borderColor: 'rgba(0, 204, 106, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Importance (%)' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

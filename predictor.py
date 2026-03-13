@@ -187,6 +187,17 @@ class PremierLeaguePredictor:
         # return the result and the probabilities
         return prediction, home_win_chance, draw_chance, away_win_chance
 
+    def get_feature_importance(self):
+        """Returns a sorted list of dictionaries of feature names and their importance scores."""
+        # taking the data from the Scikit-Learn module
+        importances = self.model.feature_importances_
+        # matching each parameter with his importance
+        feature_imp = list(zip(self.predictors, importances))
+        # sorting decreasingly
+        feature_imp.sort(key=lambda x: x[1], reverse=True)
+        # returns a sorted list with percentages
+        return [{"feature": f[0].replace("_", " ").title(), "importance": round(f[1] * 100, 2)} for f in feature_imp]
+
 
 # ==========================================
 # Execution Block

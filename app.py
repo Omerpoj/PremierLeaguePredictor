@@ -23,6 +23,16 @@ def home():
     return render_template('index.html', teams=teams)
 
 
+@app.route('/analytics', methods=['GET'])
+def analytics():
+    """Renders the analytics page showing the inner workings of the ML model."""
+    # Pulling the data from the module
+    feature_data = ml_system.get_feature_importance()
+
+    # Sending it to the new HTML file
+    return render_template('analytics.html', feature_data=feature_data)
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
     """
