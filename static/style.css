@@ -92,3 +92,28 @@ button:hover { background-color: #00cc6a; }
 .home-fill { background-color: #28a745; } /* Green */
 .draw-fill { background-color: #6c757d; } /* Gray */
 .away-fill { background-color: #dc3545; } /* Red */
+
+/* Model Precision Card */
+.precision-card {
+    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.precision-card h3 {
+    margin: 0;
+    color: #555;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.precision-card .score {
+    font-size: 42px;
+    font-weight: 800;
+    color: #28a745;
+    margin-top: 5px;
+}

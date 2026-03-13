@@ -26,11 +26,13 @@ def home():
 @app.route('/analytics', methods=['GET'])
 def analytics():
     """Renders the analytics page showing the inner workings of the ML model."""
-    # Pulling the data from the module
     feature_data = ml_system.get_feature_importance()
 
-    # Sending it to the new HTML file
-    return render_template('analytics.html', feature_data=feature_data)
+    # styling the percents
+    model_precision = round(ml_system.precision * 100, 1)
+
+    # sends the data to the HTML
+    return render_template('analytics.html', feature_data=feature_data, model_precision=model_precision)
 
 
 @app.route('/predict', methods=['POST'])

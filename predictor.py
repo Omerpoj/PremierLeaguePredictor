@@ -1,6 +1,6 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import precision_score
+from sklearn.metrics import accuracy_score
 import glob
 
 
@@ -10,10 +10,17 @@ class PremierLeaguePredictor:
         self.data_path = data_path
         self.predictors = ["home_code", "away_code", "day_code", "hour",
                            "home_rolling_goals", "home_rolling_conceded",
-                           "away_rolling_goals", "away_rolling_conceded"]
+                           "away_rolling_goals", "away_rolling_conceded",
+                           "home_rolling_sot", "home_rolling_sot_conceded",
+                           "away_rolling_sot", "away_rolling_sot_conceded",
+                           "home_rolling_corners", "away_rolling_corners",
+                           "home_rolling_fouls", "away_rolling_fouls",
+                           "home_rolling_yellows", "away_rolling_yellows"]
 
         # module definition
         self.model = RandomForestClassifier(n_estimators=100, min_samples_split=100, random_state=1)
+        #making a variable for the module precision
+        self.precision = 0.0
 
         # variables to store the data and the team encodings
         self.data = None
@@ -95,6 +102,7 @@ class PremierLeaguePredictor:
         df = df.sort_values("Date")
 
         # creating a mini table for every team and calculating the goals/conceded goals from the last three games
+        # FTHG = Full Time Home Goals | FTAG = Full tIME Away Goals
         df["home_rolling_goals"] = df.groupby("HomeTeam")["FTHG"].transform(
             lambda x: x.shift(1).rolling(3, min_periods=1).mean())
         df["home_rolling_conceded"] = df.groupby("HomeTeam")["FTAG"].transform(
@@ -103,10 +111,41 @@ class PremierLeaguePredictor:
             lambda x: x.shift(1).rolling(3, min_periods=1).mean())
         df["away_rolling_conceded"] = df.groupby("AwayTeam")["FTHG"].transform(
             lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        #  creating a mini table for every team and calculating the shots on goal from the last three games
+        # HST = Home Shots on Target | AST = Away Shots on Target
+        df["home_rolling_sot"] = df.groupby("HomeTeam")["HST"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        df["home_rolling_sot_conceded"] = df.groupby("HomeTeam")["AST"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        df["away_rolling_sot"] = df.groupby("AwayTeam")["AST"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        df["away_rolling_sot_conceded"] = df.groupby("AwayTeam")["HST"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        # (HC = Home Corners, AC = Away Corners)
+        df["home_rolling_corners"] = df.groupby("HomeTeam")["HC"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        df["away_rolling_corners"] = df.groupby("AwayTeam")["AC"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        # ממוצע עבירות שבוצעו
+        df["home_rolling_fouls"] = df.groupby("HomeTeam")["HF"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        df["away_rolling_fouls"] = df.groupby("AwayTeam")["AF"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        df["home_rolling_yellows"] = df.groupby("HomeTeam")["HY"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        df["away_rolling_yellows"] = df.groupby("AwayTeam")["AY"].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean())
 
-        # filling the none values in the rolling columns
-        rolling_cols = ["home_rolling_goals", "home_rolling_conceded", "away_rolling_goals", "away_rolling_conceded"]
+        # filling the missing data cells with zeros
+        rolling_cols = ["home_rolling_goals", "home_rolling_conceded",
+                        "away_rolling_goals", "away_rolling_conceded",
+                        "home_rolling_sot", "home_rolling_sot_conceded",
+                        "away_rolling_sot", "away_rolling_sot_conceded",
+                        "home_rolling_corners", "away_rolling_corners",
+                        "home_rolling_fouls", "away_rolling_fouls",
+                        "home_rolling_yellows", "away_rolling_yellows"]
         df[rolling_cols] = df[rolling_cols].fillna(0)
+
         return df
 
     def make_prediction(self, split_date_str="2025-01-01"):
@@ -124,7 +163,10 @@ class PremierLeaguePredictor:
         # initialization of a table that shows the result and the truth
         combined = pd.DataFrame(dict(actual=test["target"], prediction=preds), index=test.index)
 
-        return combined, precision_score(test["target"], preds, average='macro', zero_division=0)
+        # saving the module precision
+        self.precision = accuracy_score(test["target"], preds)
+
+        return combined, self.precision
 
     def get_team_form(self, team_name):
         """Returns the last 5 match results for a team as a list of 'W', 'D', 'L'"""
@@ -164,6 +206,16 @@ class PremierLeaguePredictor:
         latest_away = away_games.iloc[-1]
         a_goals = latest_away["away_rolling_goals"]
         a_conceded = latest_away["away_rolling_conceded"]
+        h_sot = latest_home["home_rolling_sot"]
+        h_sot_conceded = latest_home["home_rolling_sot_conceded"]
+        a_sot = latest_away["away_rolling_sot"]
+        a_sot_conceded = latest_away["away_rolling_sot_conceded"]
+        h_corners = latest_home["home_rolling_corners"]
+        a_corners = latest_away["away_rolling_corners"]
+        h_fouls = latest_home["home_rolling_fouls"]
+        a_fouls = latest_away["away_rolling_fouls"]
+        h_yellows = latest_home["home_rolling_yellows"]
+        a_yellows = latest_away["away_rolling_yellows"]
 
         match_features = pd.DataFrame([{
             "home_code": h_code,
@@ -173,7 +225,17 @@ class PremierLeaguePredictor:
             "home_rolling_goals": h_goals,
             "home_rolling_conceded": h_conceded,
             "away_rolling_goals": a_goals,
-            "away_rolling_conceded": a_conceded
+            "away_rolling_conceded": a_conceded,
+            "home_rolling_sot": h_sot,
+            "home_rolling_sot_conceded": h_sot_conceded,
+            "away_rolling_sot": a_sot,
+            "away_rolling_sot_conceded": a_sot_conceded,
+            "home_rolling_corners": h_corners,
+            "away_rolling_corners": a_corners,
+            "home_rolling_fouls": h_fouls,
+            "away_rolling_fouls": a_fouls,
+            "home_rolling_yellows": h_yellows,
+            "away_rolling_yellows": a_yellows
         }])
 
         prediction = self.model.predict(match_features)[0]
