@@ -19,6 +19,29 @@ class PremierLeaguePredictor:
         self.data = None
         self.team_mapping = {}
 
+
+    def update_latest_data(self):
+        """Downloads the latest match data directly from the web to keep the model updated."""
+        print("📥 Fetching latest Premier League results from the web...")
+
+        #The direct link to the current 25/26 season file
+        live_csv_url = "https://www.football-data.co.uk/mmz4281/2526/E0.csv"
+
+        #to check that the name matches with the local file
+        local_save_path = "matches_data/Prem25_26.csv"
+
+        try:
+            #reading straight from the url
+            df_latest = pd.read_csv(live_csv_url)
+            #saving the new data
+            df_latest.to_csv(local_save_path, index=False)
+            print("✅ Successfully updated the current season data!")
+
+        except Exception as e:
+            #if there is no connection use the local data
+            print(f"⚠️ Could not fetch live data (using existing files). Error: {e}")
+
+
     def load_and_prepare_data(self):
         """loading and concatenating the matches_data and applying all preprocessing"""
         file_paths = glob.glob(self.data_path)
@@ -102,6 +125,25 @@ class PremierLeaguePredictor:
         combined = pd.DataFrame(dict(actual=test["target"], prediction=preds), index=test.index)
 
         return combined, precision_score(test["target"], preds, average='macro', zero_division=0)
+
+    def get_team_form(self, team_name):
+        """Returns the last 5 match results for a team as a list of 'W', 'D', 'L'"""
+        # Filter matches where the team played as home or away
+        team_matches = self.data[(self.data["HomeTeam"] == team_name) |
+                                 (self.data["AwayTeam"] == team_name)].sort_values("Date")
+
+        last_5 = team_matches.tail(5)
+        form = []
+
+        for _, row in last_5.iterrows():
+            if row["FTR"] == "D":
+                form.append("D")
+            elif (row["HomeTeam"] == team_name and row["FTR"] == "H") or \
+                    (row["AwayTeam"] == team_name and row["FTR"] == "A"):
+                form.append("W")
+            else:
+                form.append("L")
+        return form
 
     def predict_single_match(self, home_team, away_team, day_code=5, hour=15):
         """

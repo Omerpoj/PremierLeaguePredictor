@@ -7,6 +7,8 @@ app = Flask(__name__)
 # The model is loaded and trained once when the server starts
 print("⏳ Initializing Machine Learning Engine...")
 ml_system = PremierLeaguePredictor()
+#updates to the latest data
+ml_system.update_latest_data()
 ml_system.load_and_prepare_data()
 ml_system.make_prediction()
 print("✅ Model is loaded and ready for web requests!")
@@ -42,12 +44,25 @@ def predict():
     if home_team == away_team:
         return jsonify({'error': '⚠️ You must select two different teams!'})
 
-# Execute the ML model prediction
+    # Get form data for both teams
+    home_form = ml_system.get_team_form(home_team)
+    away_form = ml_system.get_team_form(away_team)
+
+    # Helper function to generate HTML circles for form
+    def format_form_html(form_list):
+        colors = {"W": "#28a745", "D": "#6c757d", "L": "#dc3545"}
+        html = '<div style="display: flex; justify-content: center; gap: 5px; margin-top: 5px;">'
+        for res in form_list:
+            html += f'<span style="background:{colors[res]}; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; display:flex; align-items:center; justify-content:center; font-weight:bold;">{res}</span>'
+        html += '</div>'
+        return html
+
+    # Execute the ML model prediction
     try:
         # gets the result and the probabilities from the module
         prediction, prob_h, prob_d, prob_a = ml_system.predict_single_match(home_team, away_team)
 
-        # turns the probabilities into precent
+        # turns the probabilities into percent
         pct_h = round(prob_h * 100, 1)
         pct_d = round(prob_d * 100, 1)
         pct_a = round(prob_a * 100, 1)
@@ -60,27 +75,38 @@ def predict():
         else:
             winner_text = "⚖️ It's going to be a DRAW!"
 
+        home_form_html = format_form_html(home_form)
+        away_form_html = format_form_html(away_form)
+
         # building the text for the HTML
         result_html = f"""
                 <div style="font-size: 22px; margin-bottom: 15px; font-weight: bold;">{winner_text}</div>
 
                 <div style="display: flex; justify-content: space-around; gap: 20px;">
                     <div style="flex: 1;">
-                        <strong>{home_team}</strong><br>
-                        <span style="font-size: 18px;">{pct_h}%</span>
-                        <div class="prob-bar-container"><div class="prob-bar-fill home-fill" style="width: {pct_h}%"></div></div>
+                        <strong>{home_team}</strong>
+                        {home_form_html}
+                        <div style="margin-top: 10px;">
+                            <span style="font-size: 18px;">{pct_h}%</span>
+                            <div class="prob-bar-container"><div class="prob-bar-fill home-fill" style="width: {pct_h}%"></div></div>
+                        </div>
                     </div>
 
-                    <div style="flex: 1;">
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end;">
                         <strong>Draw</strong><br>
-                        <span style="font-size: 18px;">{pct_d}%</span>
-                        <div class="prob-bar-container"><div class="prob-bar-fill draw-fill" style="width: {pct_d}%"></div></div>
+                        <div style="margin-top: 10px;">
+                            <span style="font-size: 18px;">{pct_d}%</span>
+                            <div class="prob-bar-container"><div class="prob-bar-fill draw-fill" style="width: {pct_d}%"></div></div>
+                        </div>
                     </div>
 
                     <div style="flex: 1;">
-                        <strong>{away_team}</strong><br>
-                        <span style="font-size: 18px;">{pct_a}%</span>
-                        <div class="prob-bar-container"><div class="prob-bar-fill away-fill" style="width: {pct_a}%"></div></div>
+                        <strong>{away_team}</strong>
+                        {away_form_html}
+                        <div style="margin-top: 10px;">
+                            <span style="font-size: 18px;">{pct_a}%</span>
+                            <div class="prob-bar-container"><div class="prob-bar-fill away-fill" style="width: {pct_a}%"></div></div>
+                        </div>
                     </div>
                 </div>
                 """
