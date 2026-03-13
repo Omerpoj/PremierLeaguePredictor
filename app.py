@@ -62,14 +62,28 @@ def predict():
 
         # building the text for the HTML
         result_html = f"""
-        <div style="font-size: 22px; margin-bottom: 15px;">{winner_text}</div>
-        <hr style="border: 0; height: 1px; background: #e0e0e0; margin: 15px 0;">
-        <div style="display: flex; justify-content: space-around; font-size: 16px; color: #555;">
-            <div><strong>{home_team}</strong><br><span style="color: #28a745; font-size: 20px;">{pct_h}%</span></div>
-            <div><strong>Draw</strong><br><span style="color: #6c757d; font-size: 20px;">{pct_d}%</span></div>
-            <div><strong>{away_team}</strong><br><span style="color: #dc3545; font-size: 20px;">{pct_a}%</span></div>
-        </div>
-        """
+                <div style="font-size: 22px; margin-bottom: 15px; font-weight: bold;">{winner_text}</div>
+
+                <div style="display: flex; justify-content: space-around; gap: 20px;">
+                    <div style="flex: 1;">
+                        <strong>{home_team}</strong><br>
+                        <span style="font-size: 18px;">{pct_h}%</span>
+                        <div class="prob-bar-container"><div class="prob-bar-fill home-fill" style="width: {pct_h}%"></div></div>
+                    </div>
+
+                    <div style="flex: 1;">
+                        <strong>Draw</strong><br>
+                        <span style="font-size: 18px;">{pct_d}%</span>
+                        <div class="prob-bar-container"><div class="prob-bar-fill draw-fill" style="width: {pct_d}%"></div></div>
+                    </div>
+
+                    <div style="flex: 1;">
+                        <strong>{away_team}</strong><br>
+                        <span style="font-size: 18px;">{pct_a}%</span>
+                        <div class="prob-bar-container"><div class="prob-bar-fill away-fill" style="width: {pct_a}%"></div></div>
+                    </div>
+                </div>
+                """
 
         return jsonify({'result': result_html})
 

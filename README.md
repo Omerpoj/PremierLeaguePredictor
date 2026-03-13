@@ -1,27 +1,30 @@
-Project Overview
+# ⚽ Premier League Match Predictor (AI-Powered)
 
-A Machine Learning-based system designed to predict the outcomes of English Premier League matches. This project analyzes historical data from the last 15 seasons (over 5,600 matches) to identify patterns and team momentum, aiming to provide statistically-backed predictions for match winners.
+An end-to-end Machine Learning web application that predicts the outcome of English Premier League matches using historical data and team momentum.
 
-Tech Stack
-Language: Python
-Data Analysis: Pandas (Data Cleaning, Feature Engineering, Rolling Averages)
-Machine Learning: Scikit-Learn (Random Forest Classifier)
-Environment: Jupyter Notebook / PyCharm
+## 🚀 Live Demo
+Check out the live app here: [YOUR-RENDER-URL-HERE]
 
-Key Features
+## 🧠 How it Works
+The system uses a **Random Forest Classifier** trained on over 5,000 Premier League matches. It calculates **rolling averages** for goals scored and conceded over the last 3 matches to capture current team form (momentum).
 
-Massive Data Aggregation: Successfully merged and normalized data from 15 different seasons, handling inconsistent date formats and missing columns across over a decade of records.
-Feature Engineering (Momentum Analysis): Developed a custom "Rolling Averages" system to calculate team performance over their last 3 matches (e.g., average goals scored/conceded) to capture current form.
-Robust ML Modeling: Implemented a Random Forest Classifier to handle categorical data and mitigate overfitting, ensuring the model generalizes well to unseen future matches.
-Advanced Preprocessing: Created automated pipelines to handle missing values (NaNs), convert categorical team names into numerical codes, and extract temporal features like match hour and day of the week.
+### Key Features:
+- **ML Engine:** Built with Scikit-learn and Pandas.
+- **Asynchronous UI:** Responsive interface using JavaScript Fetch API (No page reloads).
+- **Dynamic Visuals:** Real-time team logo updates and probability momentum bars.
+- **Three-Way Prediction:** Calculates Win/Draw/Loss probabilities.
 
-Performance Metrics
+## 🛠️ Technical Stack
+- **Backend:** Python (Flask), Gunicorn
+- **Machine Learning:** Scikit-learn, Pandas, NumPy
+- **Frontend:** HTML5, CSS3 (Flexbox), JavaScript (ES6+)
+- **Deployment:** Render, GitHub Actions
 
-The model currently achieves a Precision Score of approximately 49% for Home Win predictions.
-Note: In the Premier League, the home team wins roughly 45% of the time. This model demonstrates a statistical edge by outperforming the baseline "home-win" bias through data-driven insights.
+## 📂 Project Structure
+- `app.py`: Flask server and API endpoints.
+- `predictor.py`: The core ML class for data processing and prediction.
+- `matches_data/`: Historical match data (CSV).
+- `static/`: Frontend assets (CSS, JS, Team Logos).
 
-Future Roadmap
-
-Web UI: Developing a Flask or Streamlit web application to allow users to select teams and view live predictions.
-Enhanced Features: Integrating player injury data and ELO ratings to further improve accuracy.
-OOP Refactoring: Transitioning the codebase to a fully Object-Oriented structure for better scalability.
+## 🎓 About the Developer
+Developed as a personal project by **Omer Pojejinsky**, a Computer Science student at Reichman University. This project demonstrates skills in data engineering, model deployment, and full-stack web development.

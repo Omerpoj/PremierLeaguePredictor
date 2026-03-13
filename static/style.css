@@ -70,3 +70,25 @@ button:hover { background-color: #00cc6a; }
     object-fit: contain;
     transition: transform 0.3s ease;
 }
+/* Container for the probability bars */
+.prob-bar-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    height: 10px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+/* The actual filling bar */
+.prob-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    width: 0%; /* Starts at 0 for animation */
+    transition: width 1s ease-out;
+}
+
+/* Colors for different outcomes */
+.home-fill { background-color: #28a745; } /* Green */
+.draw-fill { background-color: #6c757d; } /* Gray */
+.away-fill { background-color: #dc3545; } /* Red */
