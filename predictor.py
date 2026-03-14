@@ -1,5 +1,5 @@
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
 from sklearn.metrics import accuracy_score
 import glob
 
@@ -8,7 +8,7 @@ class PremierLeaguePredictor:
     def __init__(self, data_path="matches_data/*.csv"):
         """sys innit definition of files path, attributes and the module"""
         self.data_path = data_path
-        self.predictors = ["home_code", "away_code", "day_code", "hour",
+        self.predictors = ["home_code", "away_code",
                            "home_rolling_goals", "home_rolling_conceded",
                            "away_rolling_goals", "away_rolling_conceded",
                            "home_rolling_sot", "home_rolling_sot_conceded",
@@ -20,7 +20,17 @@ class PremierLeaguePredictor:
                            "home_elo", "away_elo"]
 
         # module definition
-        self.model = RandomForestClassifier(n_estimators=180, min_samples_split=180, random_state=1)
+        # 1the random forest module
+        rf_model = RandomForestClassifier(n_estimators=180, min_samples_split=50, random_state=1)
+
+        # the gradient boosting module
+        gb_model = GradientBoostingClassifier(n_estimators=20, learning_rate=0.05, max_depth=3, random_state=1)
+
+        # combining the two
+        self.model = VotingClassifier(estimators=[
+            ('rf', rf_model),
+            ('gb', gb_model)
+        ], voting='soft', weights=[8,1])# I tried some combinations of them
         #making a variable for the module precision
         self.precision = 0.0
 
@@ -215,6 +225,75 @@ class PremierLeaguePredictor:
 
         return combined, self.precision
 
+    def run_backtest(self, split_date_str="2024-08-01", bet_amount=10):
+        """
+        runs simulations on the model to see if he is profitable
+        """
+        print(f"\n--- 💰 Running Betting Simulator since {split_date_str} ---")
+        split_date = pd.to_datetime(split_date_str)
+
+        # taking games only after the split date
+        test_data = self.data[self.data["Date"] >= split_date].copy()
+
+        # the module computes the probabilities for the games  (0: Away, 1: Draw, 2: Home)
+        probabilities = self.model.predict_proba(test_data[self.predictors])
+        classes = list(self.model.classes_)  #  ['A', 'D', 'H']
+
+        idx_A = classes.index('A')
+        idx_D = classes.index('D')
+        idx_H = classes.index('H')
+
+        wallet = 0  # starting with 0 profit
+        bets_placed = 0
+        winning_bets = 0
+
+        for i, (index, row) in enumerate(test_data.iterrows()):
+            actual_result = row["FTR"]
+            odds_H, odds_D, odds_A = row["B365H"], row["B365D"], row["B365A"]
+
+            prob_H = probabilities[i][idx_H]
+            prob_D = probabilities[i][idx_D]
+            prob_A = probabilities[i][idx_A]
+
+            # computing the profit in each game
+            ev_H = prob_H * odds_H
+            ev_D = prob_D * odds_D
+            ev_A = prob_A * odds_A
+
+            # found a profitable bet
+            chosen_bet = None
+            bet_odds = 0
+
+            if ev_H > 1.05:
+                chosen_bet = 'H'
+                bet_odds = odds_H
+            elif ev_A > 1.05:
+                chosen_bet = 'A'
+                bet_odds = odds_A
+            elif ev_D > 1.05:
+                chosen_bet = 'D'
+                bet_odds = odds_D
+
+            # we bet on the chosen bet if there is one
+            if chosen_bet:
+                bets_placed += 1
+                wallet -= bet_amount
+
+                # did we win
+                if chosen_bet == actual_result:
+                    wallet += (bet_amount * bet_odds)  # we won and got the money
+                    winning_bets += 1
+
+        print(f"Total Matches Analyzed: {len(test_data)}")
+        print(f"Total Bets Placed: {bets_placed}")
+        print(f"Winning Bets: {winning_bets}")
+        if bets_placed > 0:
+            print(f"Win Rate on Placed Bets: {(winning_bets / bets_placed):.2%}")
+
+        profit_color = "🟢" if wallet > 0 else "🔴"
+        print(f"Net Profit / Loss: {profit_color} {wallet:.2f}$")
+        print("--------------------------------------------------")
+
     def get_team_form(self, team_name):
         """Returns the last 5 match results for a team as a list of 'W', 'D', 'L'"""
         # Filter matches where the team played as home or away
@@ -269,8 +348,6 @@ class PremierLeaguePredictor:
         match_features = pd.DataFrame([{
             "home_code": h_code,
             "away_code": a_code,
-            "day_code": day_code,
-            "hour": hour,
             "home_rolling_goals": h_goals,
             "home_rolling_conceded": h_conceded,
             "away_rolling_goals": a_goals,
@@ -305,15 +382,19 @@ class PremierLeaguePredictor:
 
     def get_feature_importance(self):
         """Returns a sorted list of dictionaries of feature names and their importance scores."""
-        # taking the data from the Scikit-Learn module
-        importances = self.model.feature_importances_
+        # pulling the data from both modules
+        rf_importances = self.model.named_estimators_['rf'].feature_importances_
+        gb_importances = self.model.named_estimators_['gb'].feature_importances_
+
+        # computing the average
+        importances = (rf_importances + gb_importances) / 2
+
         # matching each parameter with his importance
         feature_imp = list(zip(self.predictors, importances))
         # sorting decreasingly
         feature_imp.sort(key=lambda x: x[1], reverse=True)
         # returns a sorted list with percentages
         return [{"feature": f[0].replace("_", " ").title(), "importance": round(f[1] * 100, 2)} for f in feature_imp]
-
 
 # ==========================================
 # Execution Block
@@ -325,6 +406,8 @@ if __name__ == "__main__":
     predictor.load_and_prepare_data()
     results, precision = predictor.make_prediction()
     print(f"Overall Model Precision: {precision:.2%}")
+
+    predictor.run_backtest(split_date_str="2022-08-01", bet_amount=10)
 
     # examples for single games predictions
     predictor.predict_single_match("Arsenal", "Chelsea")
