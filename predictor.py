@@ -16,10 +16,10 @@ class PremierLeaguePredictor:
                            "home_rolling_corners", "away_rolling_corners",
                            "home_rolling_fouls", "away_rolling_fouls",
                            "home_rolling_yellows", "away_rolling_yellows",
-                           "home_rolling_points", "away_rolling_points"]
+                           "B365H", "B365D", "B365A"]
 
         # module definition
-        self.model = RandomForestClassifier(n_estimators=150, min_samples_split=150, random_state=1)
+        self.model = RandomForestClassifier(n_estimators=180, min_samples_split=180, random_state=1)
         #making a variable for the module precision
         self.precision = 0.0
 
@@ -92,9 +92,10 @@ class PremierLeaguePredictor:
             # default hour typical for English football
             df["hour"] = 15
 
-        # replacing each win with 3 points draw with a point and a loss with 0 points
-        df["HomePoints"] = df["FTR"].map({"H": 3, "D": 1, "A": 0})
-        df["AwayPoints"] = df["FTR"].map({"A": 3, "D": 1, "H": 0})
+            df["B365H"] = df["B365H"].fillna(2.5)
+            df["B365D"] = df["B365D"].fillna(3.0)
+            df["B365A"] = df["B365A"].fillna(2.5)
+
 
         df["target"] = df["FTR"]
         return df
@@ -140,10 +141,6 @@ class PremierLeaguePredictor:
             lambda x: x.shift(1).rolling(3, min_periods=1).mean())
         df["away_rolling_yellows"] = df.groupby("AwayTeam")["AY"].transform(
             lambda x: x.shift(1).rolling(3, min_periods=1).mean())
-        df["home_rolling_points"] = df.groupby("HomeTeam")["HomePoints"].transform(
-            lambda x: x.shift(1).rolling(3, min_periods=1).sum())
-        df["away_rolling_points"] = df.groupby("AwayTeam")["AwayPoints"].transform(
-            lambda x: x.shift(1).rolling(3, min_periods=1).sum())
 
         # filling the missing data cells with zeros
         rolling_cols = ["home_rolling_goals", "home_rolling_conceded",
@@ -152,8 +149,7 @@ class PremierLeaguePredictor:
                         "away_rolling_sot", "away_rolling_sot_conceded",
                         "home_rolling_corners", "away_rolling_corners",
                         "home_rolling_fouls", "away_rolling_fouls",
-                        "home_rolling_yellows", "away_rolling_yellows",
-                        "home_rolling_points", "away_rolling_points"]
+                        "home_rolling_yellows", "away_rolling_yellows"]
         df[rolling_cols] = df[rolling_cols].fillna(0)
 
         return df
@@ -197,7 +193,7 @@ class PremierLeaguePredictor:
                 form.append("L")
         return form
 
-    def predict_single_match(self, home_team, away_team, day_code=5, hour=15):
+    def predict_single_match(self, home_team, away_team, day_code=5, hour=15,odds_h=2.5, odds_d=3.0, odds_a=2.5):
         """
         Predicts the outcome of a specific match between two teams based on their current momentum.
         """
@@ -226,8 +222,6 @@ class PremierLeaguePredictor:
         a_fouls = latest_away["away_rolling_fouls"]
         h_yellows = latest_home["home_rolling_yellows"]
         a_yellows = latest_away["away_rolling_yellows"]
-        h_points = latest_home["home_rolling_points"]
-        a_points = latest_away["away_rolling_points"]
 
         match_features = pd.DataFrame([{
             "home_code": h_code,
@@ -248,8 +242,9 @@ class PremierLeaguePredictor:
             "away_rolling_fouls": a_fouls,
             "home_rolling_yellows": h_yellows,
             "away_rolling_yellows": a_yellows,
-            "home_rolling_points": h_points,
-            "away_rolling_points": a_points
+            "B365H": odds_h,
+            "B365D": odds_d,
+            "B365A": odds_a
         }])
 
         prediction = self.model.predict(match_features)[0]
