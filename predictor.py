@@ -16,7 +16,8 @@ class PremierLeaguePredictor:
                            "home_rolling_corners", "away_rolling_corners",
                            "home_rolling_fouls", "away_rolling_fouls",
                            "home_rolling_yellows", "away_rolling_yellows",
-                           "B365H", "B365D", "B365A"]
+                           "B365H", "B365D", "B365A",
+                           "home_elo", "away_elo"]
 
         # module definition
         self.model = RandomForestClassifier(n_estimators=180, min_samples_split=180, random_state=1)
@@ -26,6 +27,7 @@ class PremierLeaguePredictor:
         # variables to store the data and the team encodings
         self.data = None
         self.team_mapping = {}
+        self.current_elo = {}
 
 
     def update_latest_data(self):
@@ -151,6 +153,45 @@ class PremierLeaguePredictor:
                         "home_rolling_fouls", "away_rolling_fouls",
                         "home_rolling_yellows", "away_rolling_yellows"]
         df[rolling_cols] = df[rolling_cols].fillna(0)
+        # === Elo ranking system ===
+        elo_ratings = {}
+        home_elo_list = []
+        away_elo_list = []
+        K = 20  # the k factor of every game
+
+        for index, row in df.iterrows():
+            h_team = row["HomeTeam"]
+            a_team = row["AwayTeam"]
+
+            # every team starts with 1500 elo as default
+            if h_team not in elo_ratings: elo_ratings[h_team] = 1500
+            if a_team not in elo_ratings: elo_ratings[a_team] = 1500
+
+            current_h_elo = elo_ratings[h_team]
+            current_a_elo = elo_ratings[a_team]
+
+            # saving the elo *before* the match
+            home_elo_list.append(current_h_elo)
+            away_elo_list.append(current_a_elo)
+
+            # calculating the probabilities
+            expected_h = 1 / (1 + 10 ** ((current_a_elo - current_h_elo) / 400))
+            expected_a = 1 - expected_h
+
+            if row["FTR"] == "H":
+                actual_h, actual_a = 1, 0
+            elif row["FTR"] == "D":
+                actual_h, actual_a = 0.5, 0.5
+            else:
+                actual_h, actual_a = 0, 1
+
+            elo_ratings[h_team] = current_h_elo + K * (actual_h - expected_h)
+            elo_ratings[a_team] = current_a_elo + K * (actual_a - expected_a)
+
+        df["home_elo"] = home_elo_list
+        df["away_elo"] = away_elo_list
+
+        self.current_elo = elo_ratings
 
         return df
 
@@ -222,6 +263,8 @@ class PremierLeaguePredictor:
         a_fouls = latest_away["away_rolling_fouls"]
         h_yellows = latest_home["home_rolling_yellows"]
         a_yellows = latest_away["away_rolling_yellows"]
+        h_elo = self.current_elo.get(home_team, 1500)
+        a_elo = self.current_elo.get(away_team, 1500)
 
         match_features = pd.DataFrame([{
             "home_code": h_code,
@@ -244,7 +287,9 @@ class PremierLeaguePredictor:
             "away_rolling_yellows": a_yellows,
             "B365H": odds_h,
             "B365D": odds_d,
-            "B365A": odds_a
+            "B365A": odds_a,
+            "home_elo": h_elo,
+            "away_elo": a_elo
         }])
 
         prediction = self.model.predict(match_features)[0]
