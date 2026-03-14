@@ -17,21 +17,18 @@ class PremierLeaguePredictor:
                            "home_rolling_fouls", "away_rolling_fouls",
                            "home_rolling_yellows", "away_rolling_yellows",
                            "B365H", "B365D", "B365A",
-                           "home_elo", "away_elo"]
+                           "home_elo", "away_elo" ,"elo_diff"]
 
         # module definition
-        # 1the random forest module
-        rf_model = RandomForestClassifier(n_estimators=180, min_samples_split=50, random_state=1)
-
-        # the gradient boosting module
-        gb_model = GradientBoostingClassifier(n_estimators=20, learning_rate=0.05, max_depth=3, random_state=1)
-
-        # combining the two
-        self.model = VotingClassifier(estimators=[
-            ('rf', rf_model),
-            ('gb', gb_model)
-        ], voting='soft', weights=[8,1])# I tried some combinations of them
-        #making a variable for the module precision
+        # the random forest module
+        # מודל יער אקראי אגרסיבי והחלטי (ללא מועצת חכמים)
+        self.model = RandomForestClassifier(
+            n_estimators=300,  # lots of decision trees
+            max_depth=12,  # allows them to be deep
+            min_samples_split=10,
+            min_samples_leaf=2,
+            random_state=1
+        )
         self.precision = 0.0
 
         # variables to store the data and the team encodings
@@ -201,6 +198,8 @@ class PremierLeaguePredictor:
         df["home_elo"] = home_elo_list
         df["away_elo"] = away_elo_list
 
+        df["elo_diff"] = df["home_elo"] - df["away_elo"]
+
         self.current_elo = elo_ratings
 
         return df
@@ -366,7 +365,8 @@ class PremierLeaguePredictor:
             "B365D": odds_d,
             "B365A": odds_a,
             "home_elo": h_elo,
-            "away_elo": a_elo
+            "away_elo": a_elo,
+            "elo_diff": h_elo - a_elo
         }])
 
         prediction = self.model.predict(match_features)[0]
@@ -382,12 +382,8 @@ class PremierLeaguePredictor:
 
     def get_feature_importance(self):
         """Returns a sorted list of dictionaries of feature names and their importance scores."""
-        # pulling the data from both modules
-        rf_importances = self.model.named_estimators_['rf'].feature_importances_
-        gb_importances = self.model.named_estimators_['gb'].feature_importances_
-
-        # computing the average
-        importances = (rf_importances + gb_importances) / 2
+        # pulling the data from the module
+        importances = self.model.feature_importances_
 
         # matching each parameter with his importance
         feature_imp = list(zip(self.predictors, importances))
